@@ -60,8 +60,8 @@ Windows Forms GUI / Console Interface
 | Bus Selection - Standard Bus | ![Standard Bus](screenshots/standardbus.png) |
 | Bus Selection - Super Jet | ![Super Jet](screenshots/superjet.png) |
 | Seat Selection | ![Seat Selection](screenshots/seats.png) | Users can select multiple seats at once and have the flexibility to cancel any seat selection before confirming. The total price updates automatically on the screen in real-time, making the booking process clear and convenient. |
-| Ticket View | ![Ticket View](screenshots/ticket.png) | The finalized ticket is displayed clearly on the user’s mobile device, showing all essential details — including route, bus type, seat/s numbers, departure time.|
 | Ticket QR Code | ![Ticket QR](screenshots/ticketQR.png) | Once confirmed, a QR code is generated. Scanning it with a mobile device opens the digital ticket via a local server for easy access. |
+| Ticket View | ![Ticket View](screenshots/ticket.png) | The finalized ticket is displayed clearly on the user’s mobile device, showing all essential details — including route, bus type, seat/s numbers, departure time.|
 
 *(Note: Replace placeholders with actual screenshots)*
 
