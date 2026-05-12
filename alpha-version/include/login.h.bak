@@ -1,0 +1,143 @@
+#include <iostream>
+using namespace std;
+#include "datamigration.h"
+
+using namespace std;
+
+class log : protected Request {
+    private:
+    nanodbc::connection con = nanodbc::connection(
+        NANODBC_TEXT("Driver={ODBC Driver 17 for SQL Server};"
+                     "Server=Bola;"
+                     "Database=BRSYS;"
+                     "Trusted_Connection=yes;"
+                     "TrustServerCertificate=yes;")
+    );
+    public:
+    void login() {
+        string email, password;
+        cout << "Enter your email: ";
+        cin >> email;
+        cout << "Enter your password: ";
+        cin >> password;
+
+        if (email == "admin" && password == "admin") {
+            cout << "Admin login successful!" << endl;
+            cout << "Welcome, Admin!" << endl;
+            admin();
+
+        }
+    }   
+    void admin(){
+        cout << "Choose what you will do: " << endl;
+            cout << "1. Manage Users" << endl;
+            cout << "2. Manage Buses" << endl;
+            cout << "3. Manage Routes" << endl;
+            cout << "4. Manage Trips" << endl;
+            cout << "5. Manage Reservations" << endl;
+            cout << "6. Exit" << endl;
+            int choice;
+            cin >> choice;
+            if(choice == 1){
+                cout << "Managing Users..." << endl;
+                cout << "Adding a user..." << endl;
+                cout << "Enter user name: ";
+                string user_name;
+                cin >> user_name;
+                cout << "Enter user email: ";
+                string user_email;
+                cin >> user_email;
+                cout << "Enter user password: ";
+                string user_password;
+                cin >> user_password;
+                cout << "Enter user phone number: ";
+                string user_phone;
+                cin >> user_phone;
+                user new_user(user_name, user_email, user_password, user_phone);
+                save_user(new_user);
+                
+
+            }
+            else if(choice == 2){
+                cout << "Managing Buses..." << endl;
+                cout << "Adding a bus..." << endl;
+                cout << "Enter bus driver name: ";
+                string bus_driver;
+                cin >> bus_driver;
+                cout << "Enter bus capacity: ";
+                long long bus_capacity;
+                cin >> bus_capacity;
+                route r = show_routes();
+                bus new_bus(bus_driver, bus_capacity, r);
+                save_bus(new_bus);
+            }
+            else if(choice == 3){
+                cout << "Managing Routes..." << endl;
+                cout << "Adding a route..." << endl;
+                cout << "Enter start location: ";
+                string start_location;
+                cin >> start_location;
+                cout << "Enter end location: ";
+                string end_location;
+                cin >> end_location;
+                cout << "Enter duration: ";
+                string duration;
+                cin >> duration;
+                route new_route(duration, start_location, end_location);
+                save_route(new_route);
+            }
+            else if(choice == 4){
+                cout << "Managing Trips..." << endl;
+                cout << "Adding a trip..." << endl;
+                cout << "Enter trip date (YYYY-MM-DD): ";
+                string trip_date;
+                cin >> trip_date;
+                cout << "Enter trip time (HH:MM:SS): ";
+                string trip_time;
+                cin >> trip_time;
+                cout << "Enter price: ";
+                int price;
+                cin >> price;
+                bus b = show_buses();
+                route r = b.getroute();
+                trip new_trip(trip_date,  b, r, trip_time);
+                save_trip(new_trip, price);
+            }
+            else if(choice == 5){
+                cout << "Managing Reservations..." << endl;
+                cout << "1. Book a trip" << endl;
+                cout << "2. Cancel a trip" << endl;
+                int reservation_choice;
+                cin >> reservation_choice;
+                if(reservation_choice == 1){
+                    cout << "Booking a trip..." << endl;
+                    user u = show_users();
+                    cout << "Enter seat number: ";
+                    int seat_number;
+                    cin >> seat_number;
+                    book_trip(u,  seat_number);
+                }
+                else if(reservation_choice == 2){
+                    cout << "Cancelling a trip..." << endl;
+                    user u = show_users();
+                    long long selected_trip = show_trips();
+                    cancel_trip(u, selected_trip);
+                }
+                else{
+                    cout << "Invalid choice." << endl;
+                }
+            }
+            else if(choice == 6){
+                cout << "Exiting..." << endl;
+                return;
+            }
+            else{
+                cout << "Invalid choice." << endl;
+                admin();
+            }
+                admin();
+            
+        }
+
+    
+};

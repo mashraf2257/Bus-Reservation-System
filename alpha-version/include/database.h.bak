@@ -1,0 +1,100 @@
+#include <iostream>
+#include "nanodbc.h"
+using namespace std;
+#pragma once
+    
+class DB {
+public:
+    DB(){
+        nanodbc::connection conn(
+            NANODBC_TEXT("Driver={ODBC Driver 17 for SQL Server};Server=Bola;Trusted_Connection=yes;TrustServerCertificate=yes;")
+        );
+        
+        nanodbc::execute(conn, NANODBC_TEXT(R"(
+            IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'BRSYS')
+            BEGIN
+                CREATE DATABASE BRSYS;
+            END
+        )"));
+        nanodbc::connection db_conn(
+            NANODBC_TEXT("Driver={ODBC Driver 17 for SQL Server};Server=Bola;Database=BRSYS;Trusted_Connection=yes;TrustServerCertificate=yes;")
+        );
+        
+        nanodbc::execute(db_conn, NANODBC_TEXT(R"(
+            IF NOT EXISTS (
+                SELECT * FROM INFORMATION_SCHEMA.TABLES 
+                WHERE TABLE_NAME = 'app_user' AND TABLE_SCHEMA = 'dbo'
+            )
+            BEGIN
+                CREATE TABLE app_user ( 
+                    user_id INT IDENTITY(1000000,1) PRIMARY KEY,
+                    user_phonenumber NVARCHAR(20),
+                    user_email NVARCHAR(100) UNIQUE,
+                    user_name NVARCHAR(100),
+                    user_password NVARCHAR(100)
+                );
+            END
+        
+             IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_NAME = 'trip_route' AND TABLE_SCHEMA = 'dbo'
+    )
+    BEGIN
+    
+    CREATE TABLE trip_route (
+        route_id INT IDENTITY(3000000,1) PRIMARY KEY,
+        start_location NVARCHAR(100),
+        end_location NVARCHAR(100),
+        duration NVARCHAR(50)
+    );
+    END
+    
+    IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_NAME = 'bus' AND TABLE_SCHEMA = 'dbo'
+    )
+    BEGIN
+    
+    CREATE TABLE bus (
+        bus_id INT IDENTITY(2000000,1) PRIMARY KEY,
+        bus_driver NVARCHAR(100) UNIQUE,
+        bus_capacity INT,
+        route_id INT FOREIGN KEY REFERENCES trip_route(route_id)
+    );
+    END
+    
+    IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_NAME = 'trip' AND TABLE_SCHEMA = 'dbo'
+    )
+    BEGIN
+    
+    CREATE TABLE trip (
+        trip_id INT IDENTITY(4000000,1) PRIMARY KEY,
+        trip_date DATE,
+        trip_time TIME,
+        price INT,
+        bus_id INT FOREIGN KEY REFERENCES bus(bus_id),
+        route_id INT FOREIGN KEY REFERENCES trip_route(route_id)
+    );
+    END
+    
+    IF NOT EXISTS (
+        SELECT * FROM INFORMATION_SCHEMA.TABLES 
+        WHERE TABLE_NAME = 'reservation' AND TABLE_SCHEMA = 'dbo'
+    )
+    BEGIN
+    
+    CREATE TABLE reservation (
+        reservation_id INT PRIMARY KEY IDENTITY(5000000,1),
+        user_id INT FOREIGN KEY REFERENCES app_user(user_id),
+        trip_id INT FOREIGN KEY REFERENCES trip(trip_id),
+        seat_number INT,
+        reservation_date DATE,
+    );
+    END
+        )"));
+            
+    }
+
+};

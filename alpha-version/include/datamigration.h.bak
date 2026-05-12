@@ -1,0 +1,388 @@
+#include <iostream>
+#include "nanodbc.h"
+#include "database.h"
+#include "user.h"
+#include "bus.h"
+#include "route.h"
+#include "trip.h"
+#pragma once
+
+using namespace std;
+
+
+
+class Request {
+private:
+    nanodbc::connection req_con = nanodbc::connection(
+        NANODBC_TEXT("Driver={ODBC Driver 17 for SQL Server};"
+                     "Server=Bola;"
+                     "Database=BRSYS;"
+                     "Trusted_Connection=yes;"
+                     "TrustServerCertificate=yes;")
+    );
+
+public:
+    void save_user(user& u) {
+            nanodbc::statement stmt(req_con);
+            prepare(stmt, NANODBC_TEXT("SELECT 1 FROM app_user WHERE user_email = ?"));
+            stmt.bind(0, u.getemail_user().c_str());
+            auto result = execute(stmt);
+
+            if (!result.next()) {
+                stmt = nanodbc::statement(req_con);
+                prepare(stmt, NANODBC_TEXT(
+                    "INSERT INTO app_user "
+                    "(user_name, user_email, user_password, user_phonenumber) "
+                    "VALUES (?, ?, ?, ?)"
+                ));
+                stmt.bind(0, u.getname_user().c_str());
+                stmt.bind(1, u.getemail_user().c_str());
+                stmt.bind(2, u.getpassword_user().c_str());
+                stmt.bind(3, u.getphonenumber_user().c_str());
+
+                execute(stmt);
+                std::cout << "User inserted successfully.\n";
+            } else {
+                std::cout << "Email already exists.\n";
+            }
+            nanodbc::statement stmt2(req_con);
+            prepare(stmt2, NANODBC_TEXT("SELECT user_id FROM app_user WHERE user_email = ?"));
+            stmt2.bind(0, u.getemail_user().c_str());
+            auto result2 = execute(stmt2);
+    if (result2.next()) {
+            u.setid_user(result2.get<long long>(0));
+    }
+    else {
+        std::cerr << "Failed to retrieve user_id.\n";
+    }
+    
+}
+
+
+    void save_route(route& r) {
+            nanodbc::statement stmt(req_con);
+            prepare(stmt, NANODBC_TEXT("SELECT 1 FROM trip_route WHERE start_location = ? AND end_location = ?"));
+            stmt.bind(0, r.getroute_start().c_str());
+            stmt.bind(1, r.getroute_end().c_str());
+            auto result = execute(stmt);
+
+            if (!result.next()) {
+                stmt = nanodbc::statement(req_con);
+                prepare(stmt, NANODBC_TEXT(
+                    "INSERT INTO trip_route "
+                    "(start_location, end_location, duration) "
+                    "VALUES (?, ?, ?)"
+                ));
+                stmt.bind(0, r.getroute_start().c_str());
+                stmt.bind(1, r.getroute_end().c_str());
+                stmt.bind(2, r.getroute_duration().c_str());
+                execute(stmt);
+                std::cout << "Route saved\n";
+            } else {
+                std::cout << "Route already exists.\n";
+            }
+            nanodbc::statement stmt2(req_con);
+            prepare(stmt2, NANODBC_TEXT("SELECT route_id FROM trip_route WHERE start_location = ? AND end_location = ?"));
+            stmt2.bind(0, r.getroute_start().c_str());
+            stmt2.bind(1, r.getroute_end().c_str());
+            auto result2 = execute(stmt2);
+            if (result2.next()) {
+            r.setroute_id(result2.get<long long>(0));
+            } else {
+                std::cerr << "Failed to retrieve route_id.\n";
+            }
+    }
+    void save_bus(bus& b) {
+            
+            nanodbc::statement stmt(req_con);
+            prepare(stmt, NANODBC_TEXT("SELECT 1 FROM bus WHERE bus_driver = ?"));
+            stmt.bind(0, b.getbus_driver().c_str());
+            auto result = execute(stmt);
+
+            if (!result.next()) {
+                stmt = nanodbc::statement(req_con);
+                prepare(stmt, NANODBC_TEXT(
+                    "INSERT INTO bus "
+                    "(bus_driver, bus_capacity, route_id) "
+                    "VALUES (?, ?, ?)"
+                ));
+                stmt.bind(0, b.getbus_driver().c_str());
+                int capacity = b.getbus_capacity();
+                long long route_id = b.getroute().getroute_id();
+
+                stmt.bind(1, &capacity);       
+                stmt.bind(2, &route_id);       
+
+                execute(stmt);
+                std::cout << "Bus inserted successfully.\n";
+            } else {
+                std::cout << "Bus already exists.\n";
+            }
+            nanodbc::statement stmt2(req_con);
+            prepare(stmt2, NANODBC_TEXT("SELECT bus_id FROM bus WHERE bus_driver = ?"));
+            stmt2.bind(0, b.getbus_driver().c_str()); 
+        
+            auto result2 = execute(stmt2);
+    if (result2.next()) {    
+        b.setbus_id(result2.get<long long>(0));
+    } else {
+        std::cerr << "Failed to retrieve bus_id.\n";
+    }
+    }
+void save_trip(trip& t, int price) {
+            nanodbc::statement stmt(req_con);
+            prepare(stmt, NANODBC_TEXT("SELECT 1 FROM trip WHERE trip_date = ? AND bus_id = ? AND route_id = ?"));
+            stmt.bind(0, t.gettrip_date().c_str());
+            long long bus_id = t.gettrip_bus().getbus_id();
+            long long route_id = t.gettrip_route().getroute_id();
+            stmt.bind(1, &bus_id);
+            stmt.bind(2, &route_id);
+            auto result = execute(stmt);
+
+            if (!result.next()) {
+                stmt = nanodbc::statement(req_con);
+                prepare(stmt, NANODBC_TEXT(
+                    "INSERT INTO trip "
+                    "(trip_date,trip_time, bus_id, route_id, price) "
+                    "VALUES (?, ?,?, ?, ?)"
+                ));
+                stmt.bind(0, t.gettrip_date().c_str());
+                stmt.bind(2, &bus_id);
+                stmt.bind(3, &route_id);
+                stmt.bind(1, t.gettrip_time().c_str());
+                stmt.bind(4, &price);
+                execute(stmt);
+                std::cout << "Trip saved\n";
+            } else {
+                std::cout << "Trip already exists.\n";
+            }
+            nanodbc::statement stmt2(req_con);
+            prepare(stmt2, NANODBC_TEXT("SELECT trip_id FROM trip WHERE trip_date = ? AND bus_id = ? AND route_id = ?"));
+            stmt2.bind(0, t.gettrip_date().c_str());
+            stmt2.bind(1, &bus_id);
+            stmt2.bind(2, &route_id);
+            auto result2 = execute(stmt2);
+    if (result2.next()) {
+        t.settrip_id(result2.get<long long>(0));
+    } else {
+        std::cerr << "Failed to retrieve trip_id.\n";
+    }   
+    }
+    user show_users() {
+        nanodbc::statement stmt(req_con);
+        prepare(stmt, NANODBC_TEXT("SELECT * FROM app_user;"));
+        auto result = execute(stmt);
+        int i = 1;
+        vector<user> users;
+        while (result.next()) {
+            std::cout << i << ".  "
+                      << result.get<string>(1) << " " // user_name
+                      << result.get<string>(2) << " " // user_email
+                      << result.get<string>(3) << " " // user_password
+                      << result.get<string>(4) << std::endl; // user_phonenumber
+        i++;
+        users.push_back(user(result.get<string>(1), result.get<string>(2), result.get<string>(3), result.get<string>(4)));
+                }
+        cout << "Enter a number: ";
+        int choice;
+        cin >> choice;
+        if (choice >= 1 && choice <= users.size()+1) {
+            return users[choice - 1];
+            
+        } else {
+            cout << "Invalid choice." << endl;
+            show_users();
+    }
+    }
+    bus show_buses() {
+        nanodbc::statement stmt(req_con);
+        prepare(stmt, NANODBC_TEXT("SELECT bus.*, trip_route.* FROM bus JOIN trip_route ON bus.route_id = trip_route.route_id;"));
+        auto result = execute(stmt);
+        vector<bus> buses;
+        int i = 1;
+        int choice;
+        while (result.next()) {
+            std::cout << i << ".  "
+                      << result.get<string>(1) << " " // bus_driver
+                      << result.get<long long>(2) << " " // bus_capacity
+                      << result.get<string>(3) << " " // start_location
+                      << result.get<string>(4) << " " // end_location
+                      << result.get<string>(5) << std::endl; // duration
+        i++;
+                route r(result.get<string>(5), result.get<string>(3), result.get<string>(4) );
+                bus b(result.get<string>(1), result.get<long long>(2),r );
+                   buses.push_back(b);
+                }
+        cout << "Enter a number: ";
+        cin >> choice;
+        if (choice >= 1 && choice <= buses.size()) {
+            return buses[choice - 1];
+            
+        } else {
+            cout << "Invalid choice." << endl;
+            show_buses();
+        }
+    }
+    route show_routes() {
+        nanodbc::statement stmt(req_con);
+        prepare(stmt, NANODBC_TEXT("SELECT * FROM trip_route;"));
+        auto result = execute(stmt);
+        int i = 1;
+        vector<route> routes;
+        while (result.next()) {
+            std::cout << i << ".  "<< result.get<long long>(0) << " " // route_id
+                      << result.get<string>(1) << " " // start_location
+                      << result.get<string>(2) << " " // end_location
+                      << result.get<string>(3) << std::endl; // duration
+        i++;
+        routes.push_back(route(result.get<string>(3), result.get<string>(1), result.get<string>(2)));
+                    }
+        cout << "Enter a number: ";
+        int choice;
+        cin >> choice;
+        if (choice >= 1 && choice <= routes.size()) {
+            return routes[choice - 1];
+            
+        } else {
+            cout << "Invalid choice." << endl;
+            show_routes();
+    }
+}
+long long show_trips(){
+        nanodbc::statement stmt(req_con);
+        prepare(stmt, NANODBC_TEXT("SELECT trip.*, trip_route.* FROM  trip JOIN trip_route ON trip.route_id = trip_route.route_id;"));
+        auto result = execute(stmt);
+        int i = 1;
+        vector<long long> trips;
+        while (result.next()) {
+
+            std::cout << i << ".  "<< result.get<long long>(0) << " " // trip_id
+                      << result.get<string>(1) << " " // trip_date
+                      << result.get<string>(2) << " " // trip_time
+                      << result.get<long long>(3) << " " // bus_id
+                      << result.get<long long>(4) << " " // route_id
+                      << result.get<string>(5) << " " // start_location
+                      << result.get<string>(6) << " " // end_location
+                      << result.get<string>(7) << std::endl; // duration
+        i++;
+        trips.push_back(result.get<long long>(0)); // trip_id
+                    }
+		int choice;
+        cin >> choice;
+                    return trips[choice - 1]; // Return the selected trip_id
+    }
+
+    void book_trip(user& u, int selected_seat) {
+    
+            long long trip_id = show_trips();
+            long long user_id = u.getid_user();
+string seat_status;
+nanodbc::statement seat_stmt(req_con);
+            prepare(seat_stmt, NANODBC_TEXT("SELECT "
+    "CASE "
+        "WHEN EXISTS ("
+            "SELECT 1 "
+            "FROM Reservation "
+            "WHERE seat_number = 1 AND trip_id = 10000001"
+        ") THEN 'Taken'"
+        "ELSE 'Available'"
+    "END AS seat_status;"));
+    auto status_res = nanodbc::execute(seat_stmt);
+    seat_status = (status_res.next()) ? status_res.get<string>(0) : "Available";
+                if(seat_status == "Available"){
+
+                    nanodbc::statement stmt(req_con);
+                    
+                    prepare(stmt, NANODBC_TEXT("SELECT 1 FROM reservation WHERE user_id = ? AND trip_id = ? AND seat_number = ?"));
+                    stmt.bind(0, &user_id);
+                    stmt.bind(1, &trip_id);
+                    stmt.bind(2, &selected_seat);
+                    auto result = execute(stmt);
+                    
+                    if (!result.next()) {
+                        
+                        stmt = nanodbc::statement(req_con);
+                        prepare(stmt, NANODBC_TEXT(
+                            "INSERT INTO reservation "
+                            "(user_id, trip_id, seat_number,reservation_date) "
+                            "VALUES (?, ? , ? , ?)"
+                        ));
+                        stmt.bind(0, &user_id);
+                        stmt.bind(1, &trip_id);
+                        stmt.bind(2, &selected_seat);
+                        
+                        nanodbc::statement date_stmt(req_con);
+                        nanodbc::prepare(date_stmt, NANODBC_TEXT("SELECT trip_date from trip where trip_id = ?"));
+                        date_stmt.bind(0, &trip_id);
+                        auto date_result = execute(date_stmt);
+                        
+                        
+                        string reservation_date = "";
+                        if (date_result.next()) {
+                            reservation_date = date_result.get<string>(0);
+                        } else {
+                            
+                            cout << "No available trips.\n";
+                        }
+                        
+                        stmt.bind(3, reservation_date.c_str());
+                        execute(stmt);
+                        cout << "Trip booked successfully.\n";
+                        
+                    }else{
+                        cout << "Trip already booked.\n";
+                    }
+                }
+                else{
+                    cout << "The seat is not available" << endl << "Try another one" << endl;
+                    int new_seat;
+                    cout << "Enter a new seat number: ";
+                    cin >> new_seat;
+                    book_trip(u, new_seat);
+                }
+        }
+    void cancel_trip(user& u, long long selected_trip) {
+        nanodbc::statement stmt(req_con);
+        prepare(stmt, NANODBC_TEXT(R"(
+        SELECT 
+            reservation.reservation_id,
+            reservation.seat_number,
+            trip.trip_date,
+            trip.trip_time,
+            trip.price,
+            trip_route.start_location,
+            trip_route.end_location
+        FROM 
+            reservation
+        JOIN 
+            trip ON reservation.trip_id = trip.trip_id
+        JOIN 
+            trip_route ON trip.route_id = trip_route.route_id
+        WHERE 
+            reservation.user_id = ?
+    )"));
+ long long user_id = u.getid_user();
+stmt.bind(0, &user_id);
+auto result = execute(stmt);
+        int i = 1;
+        vector<long long> user_trips;
+        while (result.next()) {
+            std::cout << i << ".  "<< result.get<long long>(1) << " " // seat_number
+                      << result.get<string>(2) << " " // trip_date
+                      << result.get<string>(3) << " " // trip_time
+                      << result.get<long long>(4) << " " // price
+                      << result.get<string>(5) << " " // start_location
+                      << result.get<string>(6) << std::endl; // end_location
+        i++;
+        user_trips.push_back(result.get<long long>(0));
+        }
+        long long toBeDeleted_trip_id = user_trips[selected_trip - 1];
+        stmt = nanodbc::statement(req_con);
+        prepare(stmt, NANODBC_TEXT("DELETE FROM reservation WHERE reservation_id = ?"));
+        stmt.bind(0, &toBeDeleted_trip_id);
+        execute(stmt);
+        cout << "Trip canceled successfully.\n";
+    
+
+    }
+    };

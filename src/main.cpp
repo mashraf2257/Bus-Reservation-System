@@ -1,0 +1,16 @@
+#pragma once
+#include <iostream>
+using namespace std;
+
+#include "login.h"
+
+int main()
+{
+    DB db;
+    Request req;
+    log login;
+    login.login();
+
+    getchar(); // Wait for user input before exiting
+    return 0;
+}
